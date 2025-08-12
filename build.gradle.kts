@@ -40,5 +40,12 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
     // Ktor test host can be chatty; keep logs tidy in CI
-    systemProperty("logback.configurationFile", "none") 
+    systemProperty("logback.configurationFile", "none")
+
+    // Show standard out/err from tests
+    testLogging {
+        showStandardStreams = true
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        events("passed", "skipped", "failed")
+    }
 }
