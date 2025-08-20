@@ -10,10 +10,16 @@ import java.util.Collections
  */
 class LeakProbe {
     private val _queue = ReferenceQueue<Any>()
-    private val _refs = Collections.synchronizedList(mutableListOf<WeakReference<Any>>())
+    private val _refs = Collections.synchronizedSet(mutableSetOf<WeakReference<Any>>())
 
     fun track(vararg objs: Any) {
-        objs.forEach { _refs += WeakReference(it, _queue) }
+        objs.forEach {
+            if (_refs.map { it.get() }.toSet().contains(it)) {
+                return@forEach
+            }
+
+            _refs += WeakReference(it, _queue)
+        }
     }
 
     fun reset() {

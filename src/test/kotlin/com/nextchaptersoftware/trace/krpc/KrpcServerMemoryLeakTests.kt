@@ -51,19 +51,19 @@ class KrpcServerMemoryLeakTests {
                 }
             }
 
-            val client = createClient { installKrpc() }
-            val proxy = client.rpc("/rpc") {
-                headers["TestHeader"] = "test-header"
-                rpcConfig { serialization { json() } }
-            }.withService<LeakService>()
-
             repeat(500) { i ->
+                val client = createClient { installKrpc() }
+                val proxy = client.rpc("/rpc") {
+                    headers["TestHeader"] = "test-header"
+                    rpcConfig { serialization { json() } }
+                }.withService<LeakService>()
+
                 val res = proxy.echo("ping-$i")
                 assertEquals("ping-$i", res)
-            }
 
-            client.cancel()
-            client.close()
+                client.cancel()
+                client.close()
+            }
 
             val refs = leakProbe.refsSnapshot()
             val allCleared = awaitGc(refs, leakProbe.queue(), timeoutMs = 20_000)
@@ -91,17 +91,18 @@ class KrpcServerMemoryLeakTests {
                 }
             }
 
-            val client = createClient {}
-
             repeat(500) { i ->
+                val client = createClient {}
+
                 val msg = "ping-$i"
                 val res = client.get("/http/echo/$msg") {
                     header("TestHeader", "test-header")
                 }
                 assertEquals(msg, res.bodyAsText())
+                client.cancel()
+                client.close()
             }
 
-            client.cancel()
 
             val refs = leakProbe.refsSnapshot()
             val allCleared = awaitGc(refs, leakProbe.queue(), timeoutMs = 20_000)
@@ -134,9 +135,9 @@ class KrpcServerMemoryLeakTests {
                 }
             }
 
-            val client = createClient { install(WebSockets) }
-
             repeat(400) { i ->
+                val client = createClient { install(WebSockets) }
+
                 client.webSocket("/ws/echo") {
                     val msg = "ping-$i"
                     send(Frame.Text(msg))
@@ -144,9 +145,10 @@ class KrpcServerMemoryLeakTests {
                     assertEquals(msg, echoed)
                     close()
                 }
-            }
 
-            client.cancel()
+                client.cancel()
+                client.close()
+            }
 
             val refs = leakProbe.refsSnapshot()
             val allCleared = awaitGc(refs, leakProbe.queue(), timeoutMs = 20_000)
